@@ -1,3 +1,4 @@
+from os import makedirs
 import numpy as np
 from matplotlib import pyplot as plt
 from pandas.io.parsers import read_csv
@@ -33,65 +34,15 @@ def parte1():
         
     plt.plot([min_x,max_x],[min_y,max_y])
     plt.show()
-    
 
-def parte2v2():
-    datos = carga_csv("ex1data1.csv")
-    X = datos[:,0]
-    Y = datos[:,1]
-
+def coste(X, Y, theta0, theta1):
     m = len(X)
-    alpha = 0.01
-    theta_0 = theta_1 = 0
-    for _ in range(1500):
-        sum_0 = sum_1 = 0
-        for i in range(m):
-            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]        
-            sum_1 += ((theta_0 + theta_1 * X[i]) - Y[i]) * X[i]
-        theta_0 = theta_0 - (alpha/m) * sum_0
-        theta_1 = theta_1 - (alpha/m) * sum_1
+    sum = 0
+    for i in range(m):
+        sum += (theta0 + theta1*X[i] - Y[i])**2
+    return sum
 
-        #plt.plot(X,Y, "x")  
-        min_x = min(X)
-        max_x = max(X)
-        min_y = theta_0 + theta_1 * min_x
-        max_y = theta_0 + theta_1 * max_x
-        
-    #plt.plot([min_x,max_x],[min_y,max_y])
-    #plt.show()
-    step = 0.1
-    Theta0 = np.arange(-10, 10, step)
-    Theta1 = np.arange(-1, 4, step)
-    Theta0, Theta1 = np.meshgrid(Theta0, Theta1)
-
-    matrizCoste = np.empty_like(Theta0)
-    #print (np.shape(matrizCoste))
-
-    i = 0
-    for elem in matrizCoste:
-        elem += coste(X[i],Y[i],Theta0[i],Theta1[i])
-        elem/(2*len(X))
-        i = i+1
-
-    #print (np.shape(matrizCoste))
-    #print (np.shape(X))
-
-    fig = plt.figure()
-    ax = fig.gca(projection='3d')
-
-    surf = ax.plot_surface(Theta0,Theta1,matrizCoste, cmap=cm.coolwarm, linewidth=0, antialiased=True)
-
-    ax.zaxis.set_major_locator(LinearLocator(10))
-
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-
-    plt.show()
-
-def coste(x, y, theta0, theta1):
-    valorAprox = theta0 + theta1*x
-    return (y-valorAprox )**2
-
-def parte2():
+def pruebaSombrero():
     fig = plt.figure()
     ax = fig.gca(projection='3d')
 
@@ -124,12 +75,39 @@ def make_data(t0_range, t1_range, X, Y):
     # de todos los puntos de la rejilla
     Coste = np.empty_like(Theta0)
     for ix, iy in np.ndindex(Theta0.shape):
-        Coste[ix, iy] = coste(X, Y, [Theta0[ix, iy], Theta1[ix, iy]])
+        Coste[ix, iy] = coste(X, Y, Theta0[ix, iy], Theta1[ix, iy])
 
-    plt.contour(Theta0, Theta1, Coste,
-    np.logspace(-2, 3, 20), colors='blue')
+    return Theta0,Theta1,Coste
+
+def parte1_1():
+    datos = carga_csv("ex1data1.csv")
+    X = datos[:,0]
+    Y = datos[:,1]
+
+    m = len(X)
+    alpha = 0.01
+    theta_0 = theta_1 = 0
+    for _ in range(1500):
+        sum_0 = sum_1 = 0
+        for i in range(m):
+            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]        
+            sum_1 += ((theta_0 + theta_1 * X[i]) - Y[i]) * X[i]
+        theta_0 = theta_0 - (alpha/m) * sum_0
+        theta_1 = theta_1 - (alpha/m) * sum_1
+
+    THETA_0,THETA_1,COSTE = make_data([-10,10],[-1,4],X,Y)
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.plot_surface(THETA_0,THETA_1,COSTE,cmap=cm.jet)
+    ax.set_xlabel("θ0")
+    ax.set_ylabel("θ1")
+    ax.set_zlabel("Coste")
     plt.show()
+    plt.clf()
 
-    return [Theta0, Theta1, Coste]
+    plt.plot(theta_0, theta_1, marker='x',markersize=10,markeredgecolor='red')
+    plt.contour(THETA_0,THETA_1,COSTE,np.logspace(-2,5,20))
+    plt.show()
+    plt.clf()
 
-parte2v2()
