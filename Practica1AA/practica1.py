@@ -6,14 +6,16 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
+
 def carga_csv(file):
     valores = read_csv(file, header=None).to_numpy()
     return valores
 
+
 def parte1():
     datos = carga_csv("ex1data1.csv")
-    X = datos[:,0]
-    Y = datos[:,1]
+    X = datos[:, 0]
+    Y = datos[:, 1]
 
     m = len(X)
     alpha = 0.01
@@ -21,26 +23,32 @@ def parte1():
     for _ in range(1500):
         sum_0 = sum_1 = 0
         for i in range(m):
-            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]        
+            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]
             sum_1 += ((theta_0 + theta_1 * X[i]) - Y[i]) * X[i]
         theta_0 = theta_0 - (alpha/m) * sum_0
         theta_1 = theta_1 - (alpha/m) * sum_1
 
-        plt.plot(X,Y, "x")  
+        plt.plot(X, Y, "x")
         min_x = min(X)
         max_x = max(X)
         min_y = theta_0 + theta_1 * min_x
         max_y = theta_0 + theta_1 * max_x
-        
-    plt.plot([min_x,max_x],[min_y,max_y])
+
+    plt.plot([min_x, max_x], [min_y, max_y])
     plt.show()
 
-def coste(X, Y, theta0, theta1):
+
+def costeIterativo(X, Y, theta0, theta1):
     m = len(X)
     sum = 0
     for i in range(m):
         sum += (theta0 + theta1*X[i] - Y[i])**2
     return sum
+
+def coste(X, Y, Theta):
+    H = np.dot(X, Theta)
+    Aux = (H - Y) ** 2
+    return Aux.sum() / (2 * len(X))
 
 def pruebaSombrero():
     fig = plt.figure()
@@ -49,11 +57,12 @@ def pruebaSombrero():
     X = np.arange(-5, 5, 0.25)
     Y = np.arange(-5, 5, 0.25)
 
-    X, Y= np.meshgrid(X,Y)
-    R= np.sqrt(X**2 +Y**2)
+    X, Y = np.meshgrid(X, Y)
+    R = np.sqrt(X**2 + Y**2)
     Z = np.sin(R)
 
-    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+    surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm,
+                           linewidth=0, antialiased=False)
 
     ax.set_zlim(-1.01, 1.01)
     ax.zaxis.set_major_locator(LinearLocator(10))
@@ -62,6 +71,7 @@ def pruebaSombrero():
     fig.colorbar(surf, shrink=0.5, aspect=5)
 
     plt.show()
+
 
 def make_data(t0_range, t1_range, X, Y):
     """Genera las matrices X,Y,Z para generar un plot en 3D
@@ -75,14 +85,15 @@ def make_data(t0_range, t1_range, X, Y):
     # de todos los puntos de la rejilla
     Coste = np.empty_like(Theta0)
     for ix, iy in np.ndindex(Theta0.shape):
-        Coste[ix, iy] = coste(X, Y, Theta0[ix, iy], Theta1[ix, iy])
+        Coste[ix, iy] = costeIterativo(X, Y, Theta0[ix, iy], Theta1[ix, iy])
 
-    return Theta0,Theta1,Coste
+    return Theta0, Theta1, Coste
+
 
 def parte1_1():
     datos = carga_csv("ex1data1.csv")
-    X = datos[:,0]
-    Y = datos[:,1]
+    X = datos[:, 0]
+    Y = datos[:, 1]
 
     m = len(X)
     alpha = 0.01
@@ -90,24 +101,132 @@ def parte1_1():
     for _ in range(1500):
         sum_0 = sum_1 = 0
         for i in range(m):
-            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]        
+            sum_0 += (theta_0 + theta_1 * X[i]) - Y[i]
             sum_1 += ((theta_0 + theta_1 * X[i]) - Y[i]) * X[i]
         theta_0 = theta_0 - (alpha/m) * sum_0
         theta_1 = theta_1 - (alpha/m) * sum_1
 
-    THETA_0,THETA_1,COSTE = make_data([-10,10],[-1,4],X,Y)
+    THETA_0, THETA_1, COSTE = make_data([-10, 10], [-1, 4], X, Y)
 
     fig = plt.figure()
     ax = fig.gca(projection='3d')
-    ax.plot_surface(THETA_0,THETA_1,COSTE,cmap=cm.jet)
+    ax.plot_surface(THETA_0, THETA_1, COSTE, cmap=cm.jet)
     ax.set_xlabel("θ0")
     ax.set_ylabel("θ1")
     ax.set_zlabel("Coste")
     plt.show()
     plt.clf()
 
-    plt.plot(theta_0, theta_1, marker='x',markersize=10,markeredgecolor='red')
-    plt.contour(THETA_0,THETA_1,COSTE,np.logspace(-2,5,20))
+    plt.plot(theta_0, theta_1, marker='x',
+             markersize=10, markeredgecolor='red')
+    plt.contour(THETA_0, THETA_1, COSTE, np.logspace(-2, 5, 20))
     plt.show()
     plt.clf()
 
+
+def normMatriz(matriz):
+    matriz_norm = np.empty_like(matriz, dtype=np.float32)
+    mu = np.empty_like(matriz[0], dtype=np.float32)
+    sigma = np.empty_like(matriz[0], dtype=np.float32)
+
+    mu = np.mean(matriz, axis=0)
+    sigma = np.std(matriz, axis=0)
+
+    matriz_norm = (matriz-mu) / sigma
+
+    return matriz_norm, mu, sigma
+
+
+def descenso_gradiente(X,Y,alpha):
+    nIteraciones = 100    
+    theta = np.zeros(np.shape(X)[1])
+    costes = np.zeros(nIteraciones)
+
+    for i in range(nIteraciones):
+        costes[i] = coste(X,Y, theta)
+        aux = gradiente(X, Y, theta, alpha)
+        theta = aux
+
+    return theta, costes
+
+
+def gradiente(X, Y, Theta, alpha):
+    NuevaTheta = Theta
+    m = np.shape(X)[0]
+    n = np.shape(X)[1]
+    H = np.dot(X, Theta)
+    Aux = (H - Y)
+    for i in range(n):
+        Aux_i = Aux * X[:, i]
+        NuevaTheta[i] -= (alpha / m) * Aux_i.sum()
+    return NuevaTheta
+
+
+def parte2():
+    datos = carga_csv("ex1data2.csv")
+    datos_norm, media, desviacion = normMatriz(datos)
+    X = datos_norm[:, :-1]
+    Y = datos_norm[:, -1]
+    m = np.shape(X)[0]
+    n = np.shape(X)[1]
+    X = np.hstack([np.ones([m, 1]), X])
+
+    #alphas: 0.001, 0.003, 0.01, 0.03, 0.1, 0.3
+
+    plt.figure()
+    alpha = 0.001
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='red',label="0.001 ")
+    alpha = 0.003
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='orange',label='0.003')
+    alpha = 0.01
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='yellow',label='0.01')
+    alpha = 0.03
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='green',label='0.01')
+    alpha = 0.1
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='blue',label='0.1')
+    alpha = 0.3
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='purple',label='0.3')
+    alpha = 0.5
+    thetas, costes = descenso_gradiente(X,Y,alpha)
+    plt.scatter(np.arange(np.shape(costes)[0]),costes,c='black',label='0.5')
+        
+    #plt.savefig("DescensoGradiente")
+    plt.show()
+    print("yastaria")
+
+
+def prueba():
+    m = np.array([[1, 2], [3, 4, 1, 1, 1, 1, 1, 1, 222]])
+    print(m[-1][:-1])
+
+#np.transpose      np.matmul      np.linalg.pinv (es hacer la inversa)
+# (XT * X )^-1 * XT * Y
+def ec_normal(matriz, precios):
+    first_term = np.lignalg.pinv(np.matmul(np.traspose(matriz),matriz))
+    second_term = np.traspose(matriz)
+    third_term = precios
+
+    theta = np.matmul(np.matmul(first_term , second_term), third_term)
+
+    return theta
+
+def parte2_2():
+    datos = carga_csv("ex1data2.csv")
+    X = datos[:, :-1]
+    Y = datos[:, -1]
+    m = np.shape(X)[0]
+    n = np.shape(X)[1]
+    X = np.hstack([np.ones([m, 1]), X])
+
+
+    return
+
+
+# prueba()
+parte2_2()
