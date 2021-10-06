@@ -1,3 +1,4 @@
+#jupyter-nbconvert --to PDFviaHTML example.ipynb
 from os import makedirs
 import numpy as np
 from matplotlib import pyplot as plt
@@ -74,15 +75,10 @@ def pruebaSombrero():
 
 
 def make_data(t0_range, t1_range, X, Y):
-    """Genera las matrices X,Y,Z para generar un plot en 3D
-    """
     step = 0.1
     Theta0 = np.arange(t0_range[0], t0_range[1], step)
     Theta1 = np.arange(t1_range[0], t1_range[1], step)
     Theta0, Theta1 = np.meshgrid(Theta0, Theta1)
-    # Theta0 y Theta1 tienen las misma dimensiones, de forma que
-    # cogiendo un elemento de cada uno se generan las coordenadas x,y
-    # de todos los puntos de la rejilla
     Coste = np.empty_like(Theta0)
     for ix, iy in np.ndindex(Theta0.shape):
         Coste[ix, iy] = costeIterativo(X, Y, Theta0[ix, iy], Theta1[ix, iy])
@@ -176,8 +172,6 @@ def parte2():
     m = np.shape(X)[0]
     n = np.shape(X)[1]
     X = np.hstack([np.ones([m, 1]), X])
-
-    #alphas: 0.001, 0.003, 0.01, 0.03, 0.1, 0.3
 
     plt.figure()
     alpha = 0.001
