@@ -155,12 +155,18 @@ def gradiente(X, Y, Theta, alpha):
     m = np.shape(X)[0]
     n = np.shape(X)[1]
     H = np.dot(X, Theta)
+    return Theta-(alpha/m) * np.dot(np.transpose(X), (H-Y))
+
+def gradienteIterativo(X, Y, Theta, alpha):
+    NuevaTheta = Theta
+    m = np.shape(X)[0]
+    n = np.shape(X)[1]
+    H = np.dot(X, Theta)
     Aux = (H - Y)
     for i in range(n):
         Aux_i = Aux * X[:, i]
         NuevaTheta[i] -= (alpha / m) * Aux_i.sum()
     return NuevaTheta
-
 
 def parte2():
     datos = carga_csv("ex1data2.csv")
@@ -196,20 +202,19 @@ def parte2():
     thetas, costes = descenso_gradiente(X,Y,alpha)
     plt.scatter(np.arange(np.shape(costes)[0]),costes,c='black',label='0.5')
         
-    #plt.savefig("DescensoGradiente")
-    plt.show()
-    print("yastaria")
+    plt.savefig("DescensoGradiente")
+    plt.savefig("res")
+    pies2Nor= (1650 - media[0]) / desviacion[0]    
+    habsNor = (3 - media[1]) / desviacion[1]
+    precioPredecido = (thetas[0]+thetas[1]*pies2Nor+thetas[2]*habsNor)*desviacion[2] + media[2]
+    print("precio casa de 1650pies^2 y 3 habs (descenso grad): ", precioPredecido)
 
-
-def prueba():
-    m = np.array([[1, 2], [3, 4, 1, 1, 1, 1, 1, 1, 222]])
-    print(m[-1][:-1])
 
 #np.transpose      np.matmul      np.linalg.pinv (es hacer la inversa)
 # (XT * X )^-1 * XT * Y
 def ec_normal(matriz, precios):
-    first_term = np.lignalg.pinv(np.matmul(np.traspose(matriz),matriz))
-    second_term = np.traspose(matriz)
+    first_term = np.linalg.pinv(np.matmul(np.transpose(matriz),matriz))
+    second_term = np.transpose(matriz)
     third_term = precios
 
     theta = np.matmul(np.matmul(first_term , second_term), third_term)
@@ -223,10 +228,25 @@ def parte2_2():
     m = np.shape(X)[0]
     n = np.shape(X)[1]
     X = np.hstack([np.ones([m, 1]), X])
+    theta = ec_normal(X, Y)
 
+    precioPredecido= theta[1]*1650 + theta[2]*3 + theta[0]    
 
+    print("precio casa con 1650pies^2 y 3 habs", precioPredecido)
     return
 
+#[89597.90954355   139.21067402 -8738.01911255]
+# O1*x + 02*y + O3
+#1600,3,329900
+#
+def normal(X, Y):
+    x_transpose = np.transpose(X)
+    x_transpose_dot_x = x_transpose.dot(X)
+    term_1 = np.linalg.pinv(x_transpose_dot_x)
+    term_2 = x_transpose.dot(Y)
+    return term_1.dot(term_2)
 
+#[-9.98019634e-17  8.84765988e-01 -5.31788197e-02]
 # prueba()
+parte2()
 parte2_2()
