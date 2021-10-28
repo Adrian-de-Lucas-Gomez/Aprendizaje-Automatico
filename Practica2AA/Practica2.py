@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.lib import math
 from pandas.io.parsers import read_csv
-from matplotlib import pyplot as plt
+from matplotlib import colors, pyplot as plt
 import scipy.optimize as opt
 from sklearn.preprocessing import PolynomialFeatures
 
@@ -33,12 +33,8 @@ def sigmoide(a):
 	return r
 
 def costeRegularizado(theta, X, Y, lambo):
-
-	H = sigmoide(np.matmul(X, theta))
-
-	cost = (-1/(len(X))) * (np.dot(Y, np.log(H)) +
-							np.dot((1-Y), np.log(1-H))) +((lambo/2*(len(X))*(theta**2).sum()))
-
+	m = np.shape(X)[0]
+	return coste(theta, X, Y ) + lambo * np.sum(theta**2)/(2*m)
 
 def coste(theta, X, Y):
 
@@ -56,10 +52,11 @@ def gradiente(theta,XT, Y):
 	return grad
 
 def gradienteRegularizado(theta,XT, Y, lambo):
-	H = sigmoide(np.matmul(XT, theta))
-
-	grad = (1/len(Y)) * np.matmul(XT.T, H - Y) + (lambo/2*(len(XT)*theta))
-	return grad
+	grad = (gradiente(theta,XT, Y))
+	a = grad[0]
+	reg = lambo*theta / len(Y)
+	reg[0] = a
+	return grad + reg 
 
 def primeraParte():
 
@@ -79,9 +76,19 @@ def primeraParte():
 
 	theta = np.zeros(np.shape(X)[1])
 
+	# print(np.exp([1,2,3,4]))
+	# print(valores[:,1].shape)
+
+	# print(coste(theta,X,Y))
+	# print(gradiente(theta,X,Y))
+
 	result = opt.fmin_tnc(func = coste, x0 = theta, fprime = gradiente, args = (X,Y))
 	theta_opt = result[0]
 	print(theta_opt)
+
+
+	#plt.plot([min_x, max_x], [min_y, max_y])
+	#plt.plot([50, 100], [50, 100])
 
 	pinta_frontera_recta(X, Y , theta_opt)
 
@@ -103,23 +110,29 @@ def parte2():
 	Y = valores[:,-1]
 	m = np.shape(X)[0]
 	n = np.shape(X)[1]
-	X = np.hstack([np.ones([m, 1]),X])
-	theta = np.zeros(np.shape(X)[1])
-	result = opt.fmin_tnc(func = coste, x0 = theta, fprime = gradiente, args = (X,Y))
-	theta_opt = result[0]
+	#X = np.hstack([np.ones([m, 1]),X])
 
 	poly = PolynomialFeatures(6)
+	x_ft= poly.fit_transform(X)
+	theta = np.zeros(np.shape(x_ft)[1])
 
-	lambdita = 1
+	ini = 0
+	fin = 2
+	lambditas = np.linspace(ini,fin,5)
 
-	print(costeRegularizado(X,Y,theta,lambdita))
+	colorines = ["red", "darkorange", "yellow", "green", "aqua"]
+
+	for l, col in zip(lambditas,colorines):
+		result = opt.fmin_tnc(func = costeRegularizado, x0 = theta, fprime = gradienteRegularizado, args = (x_ft,Y,l))
+		theta_opt = result[0]
+		plot_decisionboundary(X,Y,theta_opt,poly, l, col)
+
 
 	#plot_decisionboundary(X, Y, theta_opt, poly)
-
+	plt.text(0,-1.0,("from {0} to {1}".format(ini,fin) ))
 	plt.show()
 
-def plot_decisionboundary(X, Y, theta, poly):
-	plt.figure()
+def plot_decisionboundary(X, Y, theta, poly, lanbda,color):
 	x1_min, x1_max = X[:, 0].min(), X[:, 0].max()
 	x2_min, x2_max = X[:, 1].min(), X[:, 1].max()
 	xx1, xx2 = np.meshgrid(np.linspace(x1_min, x1_max),
@@ -127,6 +140,7 @@ def plot_decisionboundary(X, Y, theta, poly):
 	h = sigmoide(poly.fit_transform(np.c_[xx1.ravel(),
 	xx2.ravel()]).dot(theta))
 	h = h.reshape(xx1.shape)
-	plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors='g')
+	plt.contour(xx1, xx2, h, [0.5], linewidths=1, colors=color)
+
 
 parte2()
