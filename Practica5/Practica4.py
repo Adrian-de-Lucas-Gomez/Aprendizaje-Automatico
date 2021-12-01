@@ -58,6 +58,25 @@ def Parte1():
 
     #PARTE 3
 
+    gradoPolinomio = 8
+    mediaX = np.mean(X, axis = 0)
+    sigmaX = np.std(X, axis = 0)
+    Xnorm = normalizar(genPolynomial(X,gradoPolinomio), mediaX, sigmaX)
+    Xnorm = np.c_[np.ones((len(Xnorm), 1)), Xnorm]
+    lRate = 0
+    theta = np.zeros(gradoPolinomio + 1)
+    
+    fmin = minimize(fun = Cost, x0 = theta, args = (Xnorm, y, lRate))
+        
+
+    plt.figure()
+    plt.scatter(X, y, marker = '$♥$', c="orange", s = 100, linewidths=0.1)
+    graphX = normalizar(np.arrange(min(X), max(X), 0.05), mediaX, sigmaX)
+    graphY = np.c_[np.ones((len(Xnorm), 1)), Xnorm]
+    graphY = graphY.dot(fmin.x) 
+
+    plt.plot(graphX, graphY, '-', c= "purple")
+    plt.show()
 
 def Hypothesys(X, theta):
     return X.dot(theta)
@@ -83,7 +102,7 @@ def genPolynomial(X,p):
         ret[:,i] = (X**(i+1)).ravel()
     return ret
 
-def normalizar(X):
-    return(1) #TODO TERMIAR ESTO
+def normalizar(X, media, sigma):
+    return (X-media)/sigma
 
 Parte1()
