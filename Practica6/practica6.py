@@ -86,6 +86,58 @@ def ParteSPAM():
             Xspam[i, palabra-1] = 1
         i+=1
 
+    files = glob.glob('easy_ham/*.txt')
+    XeasyHam = np.zeros((len(allFiles), len(corpusDict)))
+    Yspam = np.ones(len(allFiles))
+
+    i = 0
+    for file in allFiles:
+        emails = codecs.open(file, 'r', encoding='utf-8', errors = 'ignore').read()
+        tokens = email2TokenList(emails)
+        palabras = filter(None, [corpusDict.get(x) for x in tokens])
+        for palabra in palabras:
+            XeasyHam[i, palabra-1] = 1
+        i+=1
+
+    files = glob.glob('hard_ham/*.txt')
+    XhardHam = np.zeros((len(allFiles), len(corpusDict)))
+    Yspam = np.ones(len(allFiles))
+
+    i = 0
+    for file in allFiles:
+        emails = codecs.open(file, 'r', encoding='utf-8', errors = 'ignore').read()
+        tokens = email2TokenList(emails)
+        palabras = filter(None, [corpusDict.get(x) for x in tokens])
+        for palabra in palabras:
+            XhardHam[i, palabra-1] = 1
+        i+=1
+
+    X = np.vstack((Xspam, XeasyHam, XhardHam))
+
+    Yspam = [1]*len(Xspam)
+    YeasyHam = [0]*len(XeasyHam)
+    YhardHam = [0]*len(XhardHam)
+    Y = np.r_(Yspam,YeasyHam,YhardHam) 
+
+    #Generamos los conjuntos de entrenamiento, validacion y prueba 60%, 20% , 20%
+
+    XtrainTest, Xtest, YtrainTest, Ytest = ms.train_test_split(X, Y, test_size=0.2, random_state=1)
+    Xtrain, Xval, Ytrain, Yval = ms.train_test_split(XtrainTest, YtrainTest, test_size= 0.25, random_state=1)
+
+    numParams = 10
+    accuracy = np.empty((numParams,numParams))
+
+    Cs = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+    sigmas = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+
+    for c in range(numParams):
+        for s in range(numParams):
+            svm = SVC(kernel='rbf', C=Cs[c], gamma=1 / (2* sigmas[s]**2))
+            svm.fit(Xtrain, Ytrain)
+            accuracy[c,s] = svm.score(Xval, Yval)
+
+
+
 
 
 ParteSPAM()
