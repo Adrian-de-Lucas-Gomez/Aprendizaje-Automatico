@@ -21,12 +21,12 @@ def Parte1():
     lRate = 0
     minFun = minimize(fun=Cost, x0=theta, args=(Xstacked, y, lRate))
 
-    # plt.figure()
-    # plt.scatter(X, y, marker = '$☺$', c="green", s = 100, linewidths=0.1)
-    # lineX = np.linspace(min(X), max(X), 1000)
-    # lineY = np.c_[np.ones((1000,1)), lineX].dot(minFun.x)
-    # plt.plot(lineX, lineY, '-', c="purple")
-    # plt.show()
+    plt.figure()
+    plt.scatter(X, y, marker = '$☺$', c="green", s = 100, linewidths=0.1)
+    lineX = np.linspace(min(X), max(X), 1000)
+    lineY = np.c_[np.ones((1000,1)), lineX].dot(minFun.x)
+    plt.plot(lineX, lineY, '-', c="purple")
+    plt.show()
 
     # Parte2
 
@@ -52,10 +52,10 @@ def Parte1():
         errorEntre[i-1] = CalculaError(fmin.x, Xstacked[:i], y[:i])
         errorValida[i-1] = CalculaError(fmin.x, Xvalidar, yval)
 
-    # plt.figure()
-    # plt.plot(range(1, m+1), errorEntre, c = "red")
-    # plt.plot(range(1, m+1), errorValida, c = "green")
-    # plt.show()
+    plt.figure()
+    plt.plot(range(1, m+1), errorEntre, c = "red")
+    plt.plot(range(1, m+1), errorValida, c = "green")
+    plt.show()
 
     # PARTE 3
     data = loadmat('ex5data1.mat')
@@ -73,14 +73,14 @@ def Parte1():
 
     fmin = minimize(fun=Cost, x0=theta, args=(Xnorm, y, lRate))
 
-    # plt.figure()
-    # plt.scatter(X, y, marker = '$♥$', c="orange", s = 100, linewidths=0.1)
-    # graphX = (np.arange(min(X), max(X), 0.05))
-    # auxX = normalizar(genPolynomial(graphX, gradoPolinomio), mediaX, sigmaX)
-    # graphY = np.c_[np.ones((len(auxX), 1)), auxX].dot(fmin.x)
+    plt.figure()
+    plt.scatter(X, y, marker = '$♥$', c="orange", s = 100, linewidths=0.1)
+    graphX = (np.arange(min(X), max(X), 0.05))
+    auxX = normalizar(genPolynomial(graphX, gradoPolinomio), mediaX, sigmaX)
+    graphY = np.c_[np.ones((len(auxX), 1)), auxX].dot(fmin.x)
 
-    # plt.plot(graphX, graphY, '-', c= "purple")
-    # plt.show()
+    plt.plot(graphX, graphY, '-', c= "purple")
+    plt.show()
 
     # curva para la hip polinomial
 
@@ -98,10 +98,10 @@ def Parte1():
         errorEntre[i-1] = CalculaError(fmin.x, Xnorm[:i], y[:i])
         errorValida[i-1] = CalculaError(fmin.x, XvalidarStacked, yval)
 
-    # plt.figure()
-    # plt.plot(range(1, m+1), errorEntre, c="purple")
-    # plt.plot(range(1, m+1), errorValida, c="orange")
-    # plt.show()
+    plt.figure()
+    plt.plot(range(1, m+1), errorEntre, c="purple")
+    plt.plot(range(1, m+1), errorValida, c="orange")
+    plt.show()
 
     # PARTE 4 Seleccion de la labmda
 
@@ -121,10 +121,10 @@ def Parte1():
         errorValida[i] = CalculaError(fmin.x, XvalidarStacked, yval)
         i += 1
 
-    # plt.figure()
-    # plt.plot(lambdas, errorEntre, c = "gold")
-    # plt.plot(lambdas, errorValida, c = "blue")
-    # plt.show()
+    plt.figure()
+    plt.plot(lambdas, errorEntre, c = "gold")
+    plt.plot(lambdas, errorValida, c = "blue")
+    plt.show()
 
 
     #Parte 5 error para cierta lambda
