@@ -29,10 +29,10 @@ def comienzo():
 
     #print(wines.describe())
 
+    ########################## Preparacion de lo datos del DataSet ##################################
     
-    ################# SVM ###############################
 
-    #Now seperate the dataset as response variable and feature variabes
+    #Quitamos la columna de valores porque es lo que queremos determinar nosotros
     X = wines.drop('quality', axis = 1)
 
     bins = (2, 5.5, 9)
@@ -46,6 +46,17 @@ def comienzo():
     ngood = counts['good']
 
     print(f"bad {nbad}, good {ngood}")
+
+    #Quitamos los parametros menos relevantes evitando ruido y mejorando la precision
+    # X = X.drop('residual sugar', axis = 1)
+    # X = X.drop('fixed acidity', axis = 1)
+    # X = X.drop('free sulfur dioxide', axis = 1)
+    # X = X.drop('citric acid', axis = 1)
+    #################################################################################
+
+    #print(X.head())
+
+    ################# SVM ###############################
 
     sizesTest = {0.2, 0.3, 0.4}
 
@@ -124,7 +135,7 @@ def comienzo():
 
     print(classification_report(y_test, pred_rfc))
 
-    ####### COSAS DE ENSEÑAR
+    ####### Utilidad de los atributos
 
     # feat_importances = pd.Series(model2.feature_importances_, index= X.columns)
     # feat_importances.nlargest(25).plot(kind='barh',figsize=(10,10))
