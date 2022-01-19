@@ -47,9 +47,6 @@ def gradienteRegularizado(theta,XT, Y, lambo):
 
 
 ##############################################################################################################
-def sigmoide(a):
-	r = 1 / (1+ np.exp(-a))  
-	return r
 
 
 def costeNN(X, Y, theta1, theta2):
@@ -76,10 +73,10 @@ def redNeuronalPaLante(X, theta1, theta2):
     a1 = np.hstack([np.ones((xSize,1)), X])    
     # Capa oculta    
     z2 = theta1.dot(a1.T)
-    a2 = np.hstack([np.ones((xSize,1)), sigmoide(z2.T)])
+    a2 = np.hstack([np.ones((xSize,1)), expit(z2.T)])
     # Capa de salida
     z3 = np.dot(a2, theta2.T) 
-    a3 = sigmoide(z3) #Es la hipotesis
+    a3 = expit(z3) #Es la hipotesis
 
     return (a1, a2, a3)
 
@@ -144,9 +141,6 @@ def randomWeights(L_ini, L_out, E_ini):
 
 #############################################################################################################################
 
-
-
-
 def comienzo():
     wines = read_csv('winequality-red.csv')
 
@@ -201,7 +195,7 @@ def comienzo():
     X_valid = sc.fit_transform(X_valid)
 
 
-    ################# SVM ###############################
+    ################# SVM ###########################
 
     Cs = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
     # sigmas = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
@@ -311,6 +305,8 @@ def comienzo():
     lambdas = np.arange(0,2,0.06)
     #lambdas = [0.1]
 
+    #l=0.12 y 25 neuronas o
+
     record = 0
     bestL = 0
     bestHid = 0
@@ -337,7 +333,7 @@ def comienzo():
 
             #porcentaje =  float(str(evaluations*100)[:5])
 
-            A1, A2, H =  redNeuronalPaLante(X_train, theta1, theta2)
+            A1, A2, H =  redNeuronalPaLante(X_valid, theta1, theta2)
             
             #H = np.array(np.argmax(H, axis=0))
 
@@ -352,7 +348,7 @@ def comienzo():
                     predValues[i] = 1
                 i += 1
 
-            nn_matrix = confusion_matrix(y_train, predValues)
+            nn_matrix = confusion_matrix(y_valid, predValues)
             print("Confusion matrix:")
             print(nn_matrix)
 
@@ -366,7 +362,7 @@ def comienzo():
             print(f"Precision de la red con lambda {l} y {hid} neuronas ocultas")
             print(f"{porcentaje}%\n")
 
-    print(f"La mejor configuracion de la red fue con lambda {bestL} y {bestHid} capas ocultas")
+    print(f"La mejor configuracion de la red fue con lambda {bestL} y {bestHid} neuronas ocultas")
     print( str(record) + "%\n")
 
     
