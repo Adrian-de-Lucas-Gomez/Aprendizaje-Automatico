@@ -13,7 +13,7 @@ from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 
 import pandas as pd
 from pandas.io.parsers import read_csv
@@ -27,8 +27,8 @@ def coste(theta, X, Y):
 
 	H = expit(np.matmul(X, theta))
 
-	cost = (-1/(len(X))) * (np.dot(Y, np.log(H)) +
-							np.dot((1-Y), np.log(1-H)))
+	cost = (-1/(len(X))) * (np.dot(Y, np.log(H+ 0.00000001)) +
+							np.dot((1-Y), np.log(1-H + 0.00000001)))
 
 	return cost
 
@@ -47,20 +47,22 @@ def gradienteRegularizado(theta,XT, Y, lambo):
 
 
 ##############################################################################################################
-
+def sigmoide(a):
+	r = 1 / (1+ np.exp(-a))  
+	return r
 
 
 def costeNN(X, Y, theta1, theta2):
 
-	a1, a2, H = redNeuronalPaLante(X, theta1,theta2) #Haces la pasada por la red neuronal
+    a1, a2, H = redNeuronalPaLante(X, theta1,theta2) #Haces la pasada por la red neuronal
 
     #Queda mas claro dividido por partes
-	op1= -1/(len(X))
-	op2 = Y * np.log(H)
-	op3 = (1-Y) * np.log(1-H)
+    op1= -1/(len(X))    
+    op2 = Y.dot(np.log(H))
+    op3 = (1-Y).dot(np.log(1-H))
 
-	cost = op1 * np.sum(op2 + op3)
-	return cost
+    cost = op1 * np.sum(op2 + op3)
+    return cost
 
 def costeNNReg(X, Y, theta1, theta2, lambo):
     costeN = costeNN(X, Y, theta1, theta2)
@@ -74,10 +76,10 @@ def redNeuronalPaLante(X, theta1, theta2):
     a1 = np.hstack([np.ones((xSize,1)), X])    
     # Capa oculta    
     z2 = theta1.dot(a1.T)
-    a2 = np.hstack([np.ones((xSize,1)), expit(z2.T)])
+    a2 = np.hstack([np.ones((xSize,1)), sigmoide(z2.T)])
     # Capa de salida
     z3 = np.dot(a2, theta2.T) 
-    a3 = expit(z3) #Es la hipotesis
+    a3 = sigmoide(z3) #Es la hipotesis
 
     return (a1, a2, a3)
 
@@ -136,8 +138,7 @@ def precisionChecker(resOpt, n_input, n_hidden, n_labels, X, y):
     #calculamos cuantos se han identificado correctamente y lo dividimos por los casos de prueba
     return np.sum(aux == y) / np.shape(H)[0]
 
-def randomWeights(L_ini, L_out):
-    E_ini = 0.12
+def randomWeights(L_ini, L_out, E_ini):
     return np.random.random((L_out, L_ini + 1)) * (2*E_ini) - E_ini
 
 
@@ -301,7 +302,72 @@ def comienzo():
 
     print("########### REDES NEURONALES ###########")
 
-    
+    input_size= np.shape(X)[1]
+    out_size = 2 #bueno o malo
+    num_hidden = np.arange(5,50,5)
+    #num_hidden = [50]
+    num_labels = 2
+
+    lambdas = np.arange(0,2,0.06)
+    #lambdas = [0.1]
+
+    record = 0
+    bestL = 0
+    bestHid = 0
+
+    for hid in num_hidden:
+        for l in lambdas:
+
+            #Elejimos valores aleatorios para las thetas
+            theta1 = randomWeights(input_size, hid, 0.12)
+            theta2 = randomWeights(hid, out_size, 0.12)
+            #Los guardamos para probar con ellos
+            params_rn = np.concatenate((np.ravel(theta1), np.ravel(theta2)))
+            
+            num_Iterations = 100     #Vueltas dadas para tratar de optimizar
+            optimizeResult = opt.minimize(
+                fun=redNeuronalPatras,
+                x0=params_rn,
+                args=(input_size, hid, num_labels, X_train, y_train, l),
+                method='TNC',
+                jac=True,
+                options={'maxiter': num_Iterations})
+
+            evaluations = precisionChecker(optimizeResult, input_size, hid, num_labels, X_train, y_train)
+
+            #porcentaje =  float(str(evaluations*100)[:5])
+
+            A1, A2, H =  redNeuronalPaLante(X_train, theta1, theta2)
+            
+            #H = np.array(np.argmax(H, axis=0))
+
+            predValues = np.zeros(np.shape(H)[0])
+
+            i = 0
+
+            for v in H:
+                if(v[0]>v[1]):
+                    predValues[i] = 0
+                else:
+                    predValues[i] = 1
+                i += 1
+
+            nn_matrix = confusion_matrix(y_train, predValues)
+            print("Confusion matrix:")
+            print(nn_matrix)
+
+            porcentaje = ((nn_matrix[0][0] + nn_matrix[1][1]) / np.shape(H)[0]) * 100
+
+            if porcentaje > record:
+                record = porcentaje
+                bestL = l
+                bestHid = hid
+
+            print(f"Precision de la red con lambda {l} y {hid} neuronas ocultas")
+            print(f"{porcentaje}%\n")
+
+    print(f"La mejor configuracion de la red fue con lambda {bestL} y {bestHid} capas ocultas")
+    print( str(record) + "%\n")
 
     
     #Evolucion de una de las variables y  relacion con la valoracion del vino
