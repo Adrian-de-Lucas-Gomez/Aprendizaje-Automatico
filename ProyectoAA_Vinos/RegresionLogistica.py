@@ -58,6 +58,10 @@ def gradienteRegularizado(theta,XT, Y, lambo):
 	reg[0] = a
 	return grad + reg 
 
+
+
+
+
 def primeraParte():
 
 	valores = read_csv("ex2data1.csv", header = None).to_numpy()

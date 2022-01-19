@@ -6,6 +6,8 @@ from scipy.sparse.construct import random
 import scipy.optimize as opt
 import seaborn as sns
 
+import checkNNGradients as checkNNG
+
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
@@ -44,6 +46,106 @@ def gradienteRegularizado(theta,XT, Y, lambo):
 	return grad + reg 
 
 
+##############################################################################################################
+
+
+
+def costeNN(X, Y, theta1, theta2):
+
+	a1, a2, H = redNeuronalPaLante(X, theta1,theta2) #Haces la pasada por la red neuronal
+
+    #Queda mas claro dividido por partes
+	op1= -1/(len(X))
+	op2 = Y * np.log(H)
+	op3 = (1-Y) * np.log(1-H)
+
+	cost = op1 * np.sum(op2 + op3)
+	return cost
+
+def costeNNReg(X, Y, theta1, theta2, lambo):
+    costeN = costeNN(X, Y, theta1, theta2)
+    costeR = costeN + (lambo/(2*len(X)) * (np.sum(np.square(theta1[:,1:])) + np.sum(np.square(theta2[:,1:]))))
+    return costeR
+
+def redNeuronalPaLante(X, theta1, theta2):
+    
+    xSize = X.shape[0]
+    # Capa de entrada
+    a1 = np.hstack([np.ones((xSize,1)), X])    
+    # Capa oculta    
+    z2 = theta1.dot(a1.T)
+    a2 = np.hstack([np.ones((xSize,1)), expit(z2.T)])
+    # Capa de salida
+    z3 = np.dot(a2, theta2.T) 
+    a3 = expit(z3) #Es la hipotesis
+
+    return (a1, a2, a3)
+
+def redNeuronalPatras(params_rn, n_input, n_hidden, n_labels, X, y, lambdita):
+    theta1 = np.reshape(params_rn[:n_hidden * (n_input+1)], (n_hidden, (n_input+1)))
+    theta2 = np.reshape(params_rn[n_hidden * (n_input+1):], (n_labels, (n_hidden+1)))
+    
+    m = len(X)
+    A1, A2, H = redNeuronalPaLante(X, theta1, theta2)
+
+    Delta1 = np.zeros_like(theta1)
+    Delta2 = np.zeros_like(theta2)
+
+    for t in range(m):
+        a1t = A1[t, :]
+        a2t = A2[t, :]
+        ht = H[t, :]
+        yt = y[t]
+
+        d3t = ht - yt
+        d2t = np.dot(theta2.T, d3t) * (a2t * (1 - a2t))
+
+        Delta1 = Delta1 + np.dot(d2t[1:, np.newaxis], a1t[np.newaxis, :])
+        Delta2 = Delta2 + np.dot(d3t[:, np.newaxis], a2t[np.newaxis, :])
+
+    
+    #Gradientes
+    G1= Delta1 / m
+    G2 = Delta2 / m
+
+    #Lambdas
+    lambo1 = lambdita * theta1 / m
+    lambo2 = lambdita * theta2 / m
+
+    lambo1[:, 0] = 0
+    lambo2[:, 0] = 0
+
+    G1 += lambo1
+    G2 += lambo2
+
+    gradiente = np.concatenate((np.ravel(G1), np.ravel(G2)))
+
+    #Coste
+    coste = costeNNReg(X, y, theta1, theta2, lambdita)
+
+    return coste, gradiente
+    
+def precisionChecker(resOpt, n_input, n_hidden, n_labels, X, y):
+    theta1 = np.reshape(resOpt.x[:n_hidden * (n_input + 1)] , (n_hidden, (n_input+1)))
+    theta2 = np.reshape(resOpt.x[n_hidden * (n_input + 1):] , (n_labels, (n_hidden+1)))
+
+    A1, A2, H = redNeuronalPaLante(X, theta1, theta2)
+
+    aux = np.argmax(H, axis=1)
+    aux += 1
+    #calculamos cuantos se han identificado correctamente y lo dividimos por los casos de prueba
+    return np.sum(aux == y) / np.shape(H)[0]
+
+def randomWeights(L_ini, L_out):
+    E_ini = 0.12
+    return np.random.random((L_out, L_ini + 1)) * (2*E_ini) - E_ini
+
+
+#############################################################################################################################
+
+
+
+
 def comienzo():
     wines = read_csv('winequality-red.csv')
 
@@ -59,19 +161,21 @@ def comienzo():
     #print(wines.describe())
 
     ########################## Preparacion de lo datos del DataSet ##################################
-
-    #Quitamos la columna de valores porque es lo que queremos determinar nosotros
-    X = wines.drop('quality', axis = 1)
-
     bins = (2, 5.5, 9)
-    group_names = ['bad','good']
+    group_names = [0,1]
     wines['quality'] = pd.cut(wines['quality'], bins = bins, labels = group_names)
+    
+    #Quitamos la columna de valores y las etiquetas porque es lo que queremos determinar nosotros
+    X = wines.drop('quality', axis = 1)
+    X = X.values
+
     y = wines['quality']
+    y = y.astype(int).values
 
     counts = wines['quality'].value_counts()
 
-    nbad = counts['bad']
-    ngood = counts['good']
+    nbad = counts[0]
+    ngood = counts[1]
 
     print(f"bad {nbad}, good {ngood}")
 
@@ -86,7 +190,7 @@ def comienzo():
 
     X_train, X_test, y_train, y_test = ms.train_test_split(X, y, test_size=0.2, random_state=1)
     X_train, X_valid, y_train, y_valid = ms.train_test_split(X_train, y_train, test_size=0.25, random_state=1)
-    
+
     #Distribucion de los tamaños para loc conjuntos de entrenamiento, validacion y prueba
     print(len(X_train), len(X_test), len(X_valid))
 
@@ -94,6 +198,7 @@ def comienzo():
     X_train = sc.fit_transform(X_train)
     X_test = sc.fit_transform(X_test)
     X_valid = sc.fit_transform(X_valid)
+
 
     ################# SVM ###############################
 
@@ -147,51 +252,55 @@ def comienzo():
 
     ################# LOGISTIC REGRESION ###################
 
-    print("########### LOGISTIC REGRESION ###########")
-    print(f"max accuracy in training with validation is {5}") 
+    # print("########### LOGISTIC REGRESION ###########")
     
-    #Ponemos la primera columna con 1 para facilitar las cuentas vectoriales
-    m = np.shape(X_train)[0]
-    X_train_s = np.hstack([np.ones([m, 1]),X_train])
+    # #Ponemos la primera columna con 1 para facilitar las cuentas vectoriales
+    # m = np.shape(X_train)[0]
+    # X_train_s = np.hstack([np.ones([m, 1]),X_train])
 
-    m = np.shape(X_valid)[0]
-    X_valid_s = np.hstack([np.ones([m, 1]),X_valid])
+    # m = np.shape(X_valid)[0]
+    # X_valid_s = np.hstack([np.ones([m, 1]),X_valid])
     
-    theta = np.zeros(np.shape(X_train_s)[1])
+    # theta = np.zeros(np.shape(X_train_s)[1])
     
-    #Rs = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
-    Rs = [0.01]
+    # #Rs = [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30]
+    # Rs = [0.01]
 
-    for r in Rs:
-        result = opt.fmin_tnc(
-            func = costeRegularizado, x0 = theta, fprime = gradienteRegularizado,
-            args = (X_train_s, y_train, 1))
-        theta_opt = result[0]
-        print(theta_opt)
+    # for r in Rs:
+    #     result = opt.fmin_tnc(
+    #         func = costeRegularizado, x0 = theta, fprime = gradienteRegularizado,
+    #         args = (X_train_s, y_train, 1))
+    #     theta_opt = result[0]
+    #     print(theta_opt)
 
-    maxAccuracy = 0
-    bestC = 0
+    # maxAccuracy = 0
+    # bestC = 0
 
-    #Busqueda de la mejor configuracion de C
+    # #Busqueda de la mejor configuracion de C
 
-    for Ci in Cs:     
-        logReg = LogisticRegression(random_state=1, solver='lbfgs', C=Ci)
-        logReg.fit(X_train, y_train)
-        pred_sgd = logReg.predict(X_valid)
-        accuracy = accuracy_score(y_valid, pred_sgd)
+    # for Ci in Cs:     
+    #     logReg = LogisticRegression(random_state=1, solver='lbfgs', C=Ci)
+    #     logReg.fit(X_train, y_train)
+    #     pred_sgd = logReg.predict(X_valid)
+    #     accuracy = accuracy_score(y_valid, pred_sgd)
 
-        if accuracy > maxAccuracy:
-            maxAccuracy = accuracy
-            bestC = Ci
+    #     if accuracy > maxAccuracy:
+    #         maxAccuracy = accuracy
+    #         bestC = Ci
+
+    # print(f"max accuracy in training with validation is {maxAccuracy}")         
+
+    # logReg = LogisticRegression(random_state=1, solver='lbfgs', C=bestC)
+    # logReg.fit(X_valid, y_valid)
+    # pred_sgd = logReg.predict(X_test)
+
+    # print(classification_report(y_test, pred_sgd))
     
-    print("########### LOGISTIC REGRESION ###########")
-    print(f"max accuracy in training with validation is {maxAccuracy}")         
+    
+    ################# REDES NEURONALES ###################
 
-    logReg = LogisticRegression(random_state=1, solver='lbfgs', C=bestC)
-    logReg.fit(X_valid, y_valid)
-    pred_sgd = logReg.predict(X_test)
+    print("########### REDES NEURONALES ###########")
 
-    print(classification_report(y_test, pred_sgd))
     
 
     
